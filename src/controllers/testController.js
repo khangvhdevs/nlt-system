@@ -364,3 +364,58 @@ export async function updateQuestionsController(req, res) {
     return res.status(500).json({ error: 'Internal server error', detail: error.message });
   }
 }
+
+export async function deleteQuestionController(req, res) {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Question ID is required' });
+  }
+
+  try {
+    // Verify the question exists
+    const question = await Question.findById(id);
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found' });
+    }
+
+    // Get choices before deletion for verification
+    const { data: choicesBefore } = await supabase
+      .from('choices')
+      .select('id')
+      .eq('question_id', id);
+
+    // Delete the question
+    await Question.delete(id);
+
+    // Verify choices were deleted
+    const { data: choicesAfter } = await supabase
+      .from('choices')
+      .select('id')
+      .eq('question_id', id);
+
+    // Log deletion results for monitoring
+    console.log(`Deleted question ${id} with ${choicesBefore?.length || 0} choices`);
+    if (choicesAfter?.length > 0) {
+      console.warn(`Warning: ${choicesAfter.length} choices remain after question deletion`);
+      
+      // Clean up any remaining choices manually
+      const { error: cleanupError } = await supabase
+        .from('choices')
+        .delete()
+        .eq('question_id', id);
+        
+      if (cleanupError) {
+        console.error('Error cleaning up choices:', cleanupError);
+      }
+    }
+
+    return res.status(200).json({
+      message: 'Question and associated choices deleted successfully',
+      deletedChoices: choicesBefore?.length || 0
+    });
+  } catch (error) {
+    console.error('Error deleting question:', error.message);
+    return res.status(500).json({ error: 'Internal server error', detail: error.message });
+  }
+}

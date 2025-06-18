@@ -1,13 +1,28 @@
 import express from 'express';
-import { createFullTestController, getTestController, submitTestController, addQuestionsController, updateQuestionsController  } from '../controllers/testController.js';
+import { 
+    createFullTestController,
+    getTestController,
+    submitTestController,
+    addQuestionsController,
+    updateQuestionsController,
+    deleteQuestionController 
+} from '../controllers/testController.js';
+import { authorize } from '../middleware/authorize.js';
 
 const router = express.Router();
 
-// Routes requiring authentication
-router.post('/createTest', createFullTestController);
-router.get('/:id', getTestController);
-router.post('/submit', submitTestController);
-router.post('/addQuestions', addQuestionsController);
-router.put('/updateQuestions', updateQuestionsController);
+// Group các routes chỉ dành cho admin
+const adminRouter = express.Router();
+adminRouter.post('/createTest', createFullTestController);
+adminRouter.post('/addQuestions', addQuestionsController);
+adminRouter.put('/updateQuestions', updateQuestionsController);
+adminRouter.delete('/deleteQuestion/:id', deleteQuestionController);
+router.use(authorize('admin'), adminRouter);
+
+// Group các routes cho mọi user đã xác thực
+const userRouter = express.Router();
+userRouter.get('/:id', getTestController);
+userRouter.post('/submit', submitTestController);
+router.use(authorize('admin', 'user'), userRouter);
     
 export default router;
