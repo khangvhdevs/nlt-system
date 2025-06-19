@@ -3,6 +3,13 @@ import { supabase } from '../index.js';
 import { User } from '../models/user.js';
 import { generateToken } from '../utils/jwt.js';
 
+// Validate email format
+const validateEmail = (email) => {
+  // General email format
+  const generalEmailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return generalEmailRegex.test(email);
+};
+
 // Đăng ký tài khoản mới
 export const register = async (req, res) => {
   try {
@@ -12,6 +19,13 @@ export const register = async (req, res) => {
     if (!username || !email || !password) {
       return res.status(400).json({ 
         error: 'Missing required fields: username, email, and password are required' 
+      });
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        error: 'Invalid email format'
       });
     }
 
@@ -62,6 +76,13 @@ export const login = async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
+    }
+
+    // Validate email format
+    if (!validateEmail(email)) {
+      return res.status(400).json({
+        error: 'Invalid email format'
+      });
     }
 
     // Get user from database

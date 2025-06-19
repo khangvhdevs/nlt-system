@@ -9,7 +9,13 @@ export class Question {
       .select(Question.fields.join(','))
       .eq('id', id)
       .single();
-    if (error) throw error;
+    if (error) {
+      // Supabase error code for no rows found is 'PGRST116' or message includes 'No rows'
+      if (error.code === 'PGRST116' || error.message?.toLowerCase().includes('no rows')) {
+        return null;
+      }
+      throw error;
+    }
     return data;
   }
 
@@ -51,9 +57,35 @@ export class Question {
     return true;
   }
 
+  /**
+   * Find all questions with their choices for a specific test
+   * @param {string} testId - The ID of the test
+   * @returns {Promise<Array>} Array of questions with their choices
+   */
+  static async findByTestIdWithChoices(testId) {
+    const { data, error } = await supabase
+      .from('questions')
+      .select(`
+        id,
+        content,
+        choices (
+          id,
+          content,
+          is_correct
+        )
+      `)
+      .eq('test_id', testId);
+
+    if (error) throw error;
+    return data;
+  }
+
   static pickValidFields(data, allowedFields) {
-    return Object.fromEntries(
-      Object.entries(data).filter(([key]) => allowedFields.includes(key))
-    );
+    return Object.keys(data)
+      .filter(key => allowedFields.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = data[key];
+        return obj;
+      }, {});
   }
 }

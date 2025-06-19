@@ -2,6 +2,7 @@ import express from 'express';
 import { 
     createFullTestController,
     getTestController,
+    getFullTestController,
     submitTestController,
     addQuestionsController,
     updateQuestionsController,
@@ -13,6 +14,7 @@ const router = express.Router();
 
 // Group các routes chỉ dành cho admin
 const adminRouter = express.Router();
+adminRouter.get('/getTest/:id', getFullTestController);
 adminRouter.post('/createTest', createFullTestController);
 adminRouter.post('/addQuestions', addQuestionsController);
 adminRouter.put('/updateQuestions', updateQuestionsController);
