@@ -2,70 +2,27 @@ import { supabase } from '../index.js';
 import { Test } from '../models/test.js';
 import { Question } from '../models/question.js';
 import { Choice } from '../models/choice.js';
+import { createFullTestService, getFullTestService } from '../services/testService.js';
 
 export async function createFullTestController(req, res) {
-  const { title, description, questions } = req.body;
-
-  // Validate title
-  if (!title || title.trim() === '') {
-    return res.status(400).json({ error: 'Title is required' });
-  }
-
-  // Validate questions array
-  if (!Array.isArray(questions) || questions.length === 0) {
-    return res.status(400).json({ error: 'At least one question is required' });
-  }
-
-  // Validate each question
-  for (const question of questions) {
-    if (!question.content || question.content.trim() === '') {
-      return res.status(400).json({ error: 'Question content is required' });
-    }
-    if (!Array.isArray(question.choices) || question.choices.length === 0) {
-      return res.status(400).json({ error: 'Each question must have at least one choice' });
-    }
-    for (const choice of question.choices) {
-      if (!choice.content || choice.content.trim() === '') {
-        return res.status(400).json({ error: 'Choice content is required' });
-      }
-      if (typeof choice.is_correct !== 'boolean') {
-        return res.status(400).json({ error: 'Choice must have a valid is_correct boolean value' });
-      }
-    }
-  }
-
   try {
-    // Create the test
-    const newTest = await Test.create({ title, description });
-    const testId = newTest.id;
-
-    const createdQuestions = [];
-
-    // Create questions and choices
-    for (const q of questions) {      const newQuestion = await Question.create({
-        test_id: testId,
-        content: q.content
-      });
-
-      const questionId = newQuestion.id;
-
-      // Create choices for the question
-      for (let i = 0; i < q.choices.length; i++) {
-        const choice = q.choices[i];
-        await Choice.create({          question_id: questionId,
-          content: choice.content,
-          is_correct: choice.is_correct
-        });
-      }
-
-      createdQuestions.push(newQuestion);
-    }
-
+    const { title, description, questions } = req.body;
+    const { test, questions: createdQuestions } = await createFullTestService({ title, description, questions });
     return res.status(201).json({
       message: 'Test created successfully',
-      data: { test: newTest, questions: createdQuestions }
+      data: { test, questions: createdQuestions }
     });
   } catch (error) {
+    if (
+      error.message === 'Title is required' ||
+      error.message === 'At least one question is required' ||
+      error.message === 'Question content is required' ||
+      error.message === 'Each question must have at least one choice' ||
+      error.message === 'Choice content is required' ||
+      error.message === 'Choice must have a valid is_correct boolean value'
+    ) {
+      return res.status(400).json({ error: error.message });
+    }
     console.error('Error creating test:', error.message);
     return res.status(500).json({ error: 'Internal server error', detail: error.message });
   }
@@ -416,6 +373,28 @@ export async function deleteQuestionController(req, res) {
     });
   } catch (error) {
     console.error('Error deleting question:', error.message);
+    return res.status(500).json({ error: 'Internal server error', detail: error.message });
+  }
+}
+
+export async function getFullTestController(req, res) {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ error: 'Test ID is required' });
+  }
+
+  try {
+    const fullTest = await getFullTestService(id);
+    return res.status(200).json({
+      message: 'Test retrieved successfully',
+      data: fullTest
+    });
+  } catch (error) {
+    if (error.message === 'Test not found') {
+      return res.status(404).json({ error: error.message });
+    }
+    console.error('Error retrieving test:', error);
     return res.status(500).json({ error: 'Internal server error', detail: error.message });
   }
 }

@@ -3,7 +3,8 @@ import {
   getUserById,
   createUser,
   updateUser,
-  deleteUser
+  deleteUser,
+  createAccount
 } from '../controllers/userController.js';
 import { authorize } from '../middleware/authorize.js';
 
@@ -14,11 +15,12 @@ const adminRouter = express.Router();
 adminRouter.post('/', createUser);      // Tạo user mới
 adminRouter.put('/:id', updateUser);    // Cập nhật thông tin user
 adminRouter.delete('/:id', deleteUser); // Xóa user
-router.use('/admin', authorize('admin'), adminRouter);
+adminRouter.post('/createAccount', createAccount); // Tạo tài khoản mới với mật khẩu mặc định
+router.use(authorize('admin'), adminRouter);
 
 // Routes cho mọi user đã xác thực
 const userRouter = express.Router();
 userRouter.get('/:id', getUserById);    // Xem thông tin user
-router.use('/', authorize('admin', 'user'), userRouter);
+router.use(authorize('admin', 'user'), userRouter);
 
 export default router;
