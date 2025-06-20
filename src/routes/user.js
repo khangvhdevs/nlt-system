@@ -21,6 +21,6 @@ router.use(authorize('admin'), adminRouter);
 // Routes cho mọi user đã xác thực
 const userRouter = express.Router();
 userRouter.get('/:id', getUserById);    // Xem thông tin user
-router.use(authorize('admin', 'user'), userRouter);
+router.use(authorize('admin', 'trainee'), userRouter);
 
 export default router;
