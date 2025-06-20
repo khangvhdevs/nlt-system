@@ -29,6 +29,6 @@ router.use('/admin',authorize('admin'), adminRouter);
 const userRouter = express.Router();
 userRouter.get('/:id', getTestController);
 userRouter.post('/submit', submitTestController);
-router.use('/user',authorize('admin', 'user'), userRouter);
+router.use('/trainee',authorize('admin', 'trainee'), userRouter);
     
 export default router;
