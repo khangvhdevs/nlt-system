@@ -98,20 +98,30 @@ export const login = async (req, res) => {
 
     // Compare password with hashed password in database
     const isPasswordValid = await bcrypt.compare(password, user.password);
-
+    
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
     // Generate JWT token
-    const token = generateToken(user);
+    const token = generateToken(user);    // Create user response object without sensitive information
+    const userResponse = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role
+    };
 
-    // Only return the token
     return res.status(200).json({
+      message: 'Login successful',
+      user: userResponse,
       token
     });
+
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ 
+      error: error.message || 'Internal server error' 
+    });
   }
 };

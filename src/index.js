@@ -51,7 +51,7 @@ app.use('/auth', authRoutes);
 app.use(authMiddleware);
 
 // Protected routes (require authentication)
-app.use('/users', userRoutes);
+app.use('/user', userRoutes);
 app.use('/test', testRoutes);
 
 // Error handling middleware
