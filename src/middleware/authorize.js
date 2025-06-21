@@ -8,7 +8,8 @@ export const authorize = (...allowedRoles) => {
     try {
       if (!req.user) {
         return res.status(401).json({ 
-          error: 'Unauthorized - User not authenticated' 
+          error: 'Unauthorized - User not authenticated',
+          message: 'You must be logged in to access this resource.'
         });
       }
 
@@ -16,7 +17,8 @@ export const authorize = (...allowedRoles) => {
       
       if (!hasRole) {
         return res.status(403).json({
-          error: 'Forbidden - Insufficient permissions'
+          error: 'Forbidden - Insufficient permissions',
+          message: `User role '${req.user.role}' is not allowed to access this resource. Required roles: ${allowedRoles.join(', ')}`
         });
       }
 
@@ -24,7 +26,8 @@ export const authorize = (...allowedRoles) => {
     } catch (error) {
       console.error('Authorization error:', error);
       return res.status(500).json({ 
-        error: 'Internal server error'
+        error: 'Internal server error',
+        message: 'An unexpected error occurred while processing your request.'
       });
     }
   };

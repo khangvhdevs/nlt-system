@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
-const JWT_EXPIRES_IN = '24h';
+const JWT_EXPIRES_IN = '7d';
 
 export const generateToken = (user) => {
   return jwt.sign(
@@ -16,9 +16,6 @@ export const generateToken = (user) => {
 };
 
 export const verifyToken = (token) => {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
+  // Let errors propagate to middleware
+  return jwt.verify(token, JWT_SECRET);
 };
