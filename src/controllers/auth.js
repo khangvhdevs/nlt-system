@@ -93,14 +93,20 @@ export const login = async (req, res) => {
       .single();
 
     if (error || !user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ 
+        error: 'Invalid credentials',
+        message: 'Email or password is incorrect' 
+      });
     }
 
     // Compare password with hashed password in database
     const isPasswordValid = await bcrypt.compare(password, user.password);
     
     if (!isPasswordValid) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ 
+        error: 'Invalid credentials',
+        message: 'Email or password is incorrect'
+      });
     }
 
     // Generate JWT token
