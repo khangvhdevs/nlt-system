@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import session from 'express-session';
+import cookieParser from 'cookie-parser';
 import { createClient } from '@supabase/supabase-js';
 import { authMiddleware } from './middleware/auth.js';
 
@@ -10,6 +11,9 @@ dotenv.config();
 
 // Initialize Express app
 const app = express();
+
+// Cookie Parser middleware
+app.use(cookieParser());
 
 // Session configuration
 app.use(session({

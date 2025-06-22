@@ -1,4 +1,4 @@
-import { verifyToken } from '../utils/jwt.js';
+import { verifyAccessToken } from '../utils/jwt.js';
 
 export const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -10,7 +10,7 @@ export const authMiddleware = (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = verifyToken(token); // nên throw lỗi nếu token sai
+    const decoded = verifyAccessToken(token); // nên throw lỗi nếu token sai
     req.user = decoded;
     next();
   } catch (error) {
