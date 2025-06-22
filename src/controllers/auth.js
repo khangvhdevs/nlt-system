@@ -1,7 +1,8 @@
 import bcrypt from 'bcrypt';
 import { supabase } from '../index.js';
 import { User } from '../models/user.js';
-import { generateToken } from '../utils/jwt.js';
+import { generateAccessToken, generateRefreshToken, getExpirationTime } from '../utils/jwt.js';
+import { RefreshToken } from '../models/refreshToken.js';
 
 // Validate email format
 const validateEmail = (email) => {
@@ -109,8 +110,28 @@ export const login = async (req, res) => {
       });
     }
 
-    // Generate JWT token
-    const token = generateToken(user);    // Create user response object without sensitive information
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = generateRefreshToken(user);
+
+    // Save refresh token to database
+    await RefreshToken.create({
+      user_id: user.id,
+      token: refreshToken,
+      ip_address: req.ip,
+      user_agent: req.get('user-agent'),
+      expires_at: getExpirationTime(7) // 7 days
+    });
+
+    // Set refresh token cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
+    });
+
+    // Create user response object without sensitive information
     const userResponse = {
       id: user.id,
       username: user.username,
@@ -120,8 +141,8 @@ export const login = async (req, res) => {
 
     return res.status(200).json({
       message: 'Login successful',
-      user: userResponse,
-      token
+      accessToken,
+      user: userResponse
     });
 
   } catch (error) {

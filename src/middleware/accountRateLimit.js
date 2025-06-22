@@ -10,7 +10,7 @@ const accountRateLimiter = rateLimit({
   },
   message: {
     error: 'Too many login attempts',
-    message: 'Please try again after 15 minutes.'
+    message: 'Please try again after 5 minutes.'
   }
 });
 
