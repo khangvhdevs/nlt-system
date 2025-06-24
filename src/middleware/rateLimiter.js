@@ -39,7 +39,12 @@ export const loginRateLimiter = async (req, res, next) => {
 
     await redis.set(lockKey, '1', 'EX', lockTime); // ⛔ khóa
     await redis.del(countKey); // reset đếm
-    await createSpamLog(email, ip, ua, 'rate-limit');
+    await createSpamLog({
+      email, 
+      ip_address: ip, 
+      user_agent: ua, 
+      reason: 'rate-limit'
+    });
 
     return res.status(429).json({
       message: `Bạn đã bị khóa đăng nhập trong ${lockTime / 60} phút.`
