@@ -3,6 +3,7 @@ import { supabase } from '../index.js';
 import { User } from '../models/user.js';
 import { generateAccessToken, generateRefreshToken, getExpirationTime } from '../utils/jwt.js';
 import { RefreshToken } from '../models/refreshToken.js';
+import { loginSchema } from '../validations/auth.schema.js';
 
 // Validate email format
 const validateEmail = (email) => {
@@ -71,20 +72,11 @@ export const register = async (req, res) => {
 
 // Đăng nhập
 export const login = async (req, res) => {
-  console.log("📩 Request body:", req.body)
+  console.log("📩 Request body:", req.body);
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    // Validate email format
-    if (!validateEmail(email)) {
-      return res.status(400).json({
-        error: 'Invalid email format'
-      });
-    }
+    // Validate input using schema
+    const parsedData = loginSchema.parse(req.body);
+    const { email, password } = parsedData;
 
     // Get user from database
     const { data: user, error } = await supabase
@@ -94,20 +86,32 @@ export const login = async (req, res) => {
       .single();
 
     if (error || !user) {
+      console.log("User not found error:", error);
       return res.status(401).json({ 
         error: 'Invalid credentials',
-        message: 'Email or password is incorrect' 
+        message: 'Email hoặc mật khẩu không chính xác' 
       });
     }
 
-    // Compare password with hashed password in database
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    
-    if (!isPasswordValid) {
-      return res.status(401).json({ 
-        error: 'Invalid credentials',
-        message: 'Email or password is incorrect'
-      });
+    // Ensure password and user.password are defined
+    if (!password || !user.password) {
+      console.log("Password missing error - password:", !!password, "user.password:", !!user.password);
+      return res.status(400).json({ error: 'Mật khẩu không được cung cấp' });
+    }
+
+    try {
+      // Compare password with hashed password in database
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      
+      if (!isPasswordValid) {
+        return res.status(401).json({ 
+          error: 'Invalid credentials',
+          message: 'Email hoặc mật khẩu không chính xác'
+        });
+      }
+    } catch (bcryptError) {
+      console.error("bcrypt error:", bcryptError);
+      return res.status(500).json({ error: 'Lỗi xác thực mật khẩu' });
     }
 
     // Generate tokens
@@ -146,9 +150,68 @@ export const login = async (req, res) => {
     });
 
   } catch (error) {
+    if (error.name === 'ZodError') {
+      return res.status(400).json({ error: error.errors.map(e => e.message).join(', ') });
+    }
     console.error('Login error:', error);
     return res.status(500).json({ 
       error: error.message || 'Internal server error' 
     });
+  }
+};
+
+// Thay đổi mật khẩu
+export const changePassword = async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  try {
+    // Lấy thông tin người dùng từ token (đã được xác thực bởi middleware)
+    if (!req.user || !req.user.id) {
+      console.error('User not authenticated or missing user ID');
+      return res.status(401).json({ error: 'Vui lòng đăng nhập trước khi thực hiện thao tác này' });
+    }
+    
+    const userId = req.user.id;
+
+    // Log để debug
+    console.log("User ID from token:", userId);
+
+    // Lấy người dùng từ cơ sở dữ liệu
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('id, password')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
+      return res.status(404).json({ error: 'Người dùng không tồn tại' });
+    }
+
+    // Kiểm tra mật khẩu cũ
+    const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    
+    if (!isOldPasswordValid) {
+      return res.status(401).json({ 
+        error: 'Mật khẩu cũ không chính xác'
+      });
+    }
+
+    // Mã hóa mật khẩu mới
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    // Cập nhật mật khẩu mới vào cơ sở dữ liệu
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ password: hashedNewPassword })
+      .eq('id', userId);
+
+    if (updateError) {
+      throw updateError;
+    }
+
+    return res.status(200).json({ message: 'Mật khẩu đã được thay đổi thành công' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    return res.status(500).json({ message: 'Đã xảy ra lỗi, vui lòng thử lại sau' });
   }
 };
